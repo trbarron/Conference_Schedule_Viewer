@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -23,63 +23,91 @@ const App = () => (
   </NavigationContainer>
 );
 
-const ScheduleScreen = ({ navigation }) => (
-  <View style={{ flex: 1, backgroundColor: 'white'  }}>
-    {Array.from({ length: 21 }, (_, i) => {
-      const time = (i + 6) % 24;
-      const hour = time === 0 ? 12 : (time > 12 ? time - 12 : time);
-      const amPm = time < 12 || time === 24 ? 'AM' : 'PM';
-      const label = ` ${hour}:00 ${amPm}`;
-      return (
-        <View key={i} style={{
-          height: '4.76%',
-          borderBottomWidth: 1,
-          justifyContent: 'center', // Center text vertically
-          alignItems: 'flex-start'
-          }}>
-          <Text>{label}</Text>
-        </View>
-      );
-    })}
-    {scheduleData.map((event, index) => (
-    <TouchableOpacity
-      key={index}
-      style={{
-        position: 'absolute',
-        top: calculateTimePosition(event.startTime),
-        height: calculateBlockHeight(event.startTime, event.endTime),
-        width: '80%',
-        left: '20%',
-        borderRadius: 10 // Rounded corners
-      }}
-      onPress={() => navigation.navigate('EventDetail', { event })}
-    >
-      <LinearGradient
-        colors={event.gradient}
-        style={{
-          flex: 1,
-          borderRadius: 10,
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}
-        >
-        <Text style={{ fontFamily: 'Arial' }}>{event.title}</Text>
-      </LinearGradient>
+const ScheduleScreen = ({ navigation }) => {
+  const [currentDate, setCurrentDate] = useState(new Date().toISOString().split('T')[0]);
+
+  const getEventsForDate = (date) => scheduleData.filter(event => event.date === date);
+  const eventsForDate = getEventsForDate(currentDate);
+
+  const changeDate = (daysToAdd) => {
+    const dateObj = new Date(currentDate);
+    dateObj.setDate(dateObj.getDate() + daysToAdd);
+    setCurrentDate(dateObj.toISOString().split('T')[0]);
+  };
+
+  return (
+    <View style={{ flex: 1, backgroundColor: 'white' }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', padding: 10 }}>
+        <TouchableOpacity onPress={() => changeDate(-1)}>
+          <Text style={{ fontSize: 18 }}>←</Text>
         </TouchableOpacity>
-  ))}
-    <View
-      style={{
-        position: 'absolute',
-        top: calculateCurrentTimePosition(),
-        left: 0,
-        right: 0,
-        height: 1, // Thin line
-        backgroundColor: 'red',
-        zIndex: 1 // Ensure it is above other elements
-      }}
-    />
-  </View>
-);
+        <Text style={{ fontSize: 18 }}>{currentDate}</Text>
+        <TouchableOpacity onPress={() => changeDate(1)}>
+          <Text style={{ fontSize: 18 }}>→</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Time Slots */}
+      {Array.from({ length: 21 }, (_, i) => {
+        const time = (i + 6) % 24;
+        const hour = time === 0 ? 12 : (time > 12 ? time - 12 : time);
+        const amPm = time < 12 || time === 24 ? 'AM' : 'PM';
+        const label = ` ${hour}:00 ${amPm}`;
+        return (
+          <View key={i} style={{
+            height: '4.76%',
+            borderBottomWidth: 1,
+            justifyContent: 'center', // Center text vertically
+            alignItems: 'flex-start'
+            }}>
+            <Text>{label}</Text>
+          </View>
+        );
+      })}
+
+      {/* Events */}
+      {eventsForDate.map((event, index) => (
+        <TouchableOpacity
+          key={index}
+          style={{
+            position: 'absolute',
+            top: calculateTimePosition(event.startTime),
+            height: calculateBlockHeight(event.startTime, event.endTime),
+            width: '75%',
+            left: '25%',
+            borderRadius: 10 // Rounded corners
+          }}
+          onPress={() => navigation.navigate('EventDetail', { event })}
+        >
+          <LinearGradient
+            colors={event.gradient}
+            style={{
+              flex: 1,
+              borderRadius: 10,
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
+            <Text style={{ fontFamily: 'System' }}>{event.title}</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      ))}
+
+      {/* Current Time Indicator */}
+      <View
+        style={{
+          position: 'absolute',
+          top: calculateCurrentTimePosition(),
+          left: 0,
+          right: 0,
+          height: 1, // Thin line
+          backgroundColor: 'red',
+          zIndex: 1 // Ensure it is above other elements
+        }}
+      />
+    </View>
+  );
+};
 
 const EventDetailScreen = ({ route, navigation }) => {
   const { event } = route.params;
